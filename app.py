@@ -17,6 +17,7 @@ SEED_DATA_FILE = ROOT_DIR / "data" / "songs.json"
 INDEX_FILE = ROOT_DIR / "templates" / "index.html"
 STATIC_DIR = ROOT_DIR / "static"
 INSTRUMENT_KEYS = ["chitarra", "basso", "batteria", "tastiere", "voce", "altro"]
+MULTI_INSTRUMENT_KEYS = frozenset({"chitarra", "voce"})
 LOCK = threading.Lock()
 _LAST_SEED_SIGNATURE_FOR_INSTRUMENTS: Tuple[float, int] | None = None
 
@@ -34,8 +35,17 @@ def normalize_label(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", no_accents)
 
 
-def blank_instruments() -> Dict[str, str]:
-    return {key: "" for key in INSTRUMENT_KEYS}
+def list_strings(raw: object) -> List[str]:
+    if isinstance(raw, list):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    if raw is None:
+        return []
+    s = str(raw).strip()
+    return [s] if s else []
+
+
+def blank_instruments() -> Dict[str, object]:
+    return {key: ([] if key in MULTI_INSTRUMENT_KEYS else "") for key in INSTRUMENT_KEYS}
 
 
 def song_identity(song: Dict[str, object]) -> Tuple[str, str]:
@@ -44,14 +54,26 @@ def song_identity(song: Dict[str, object]) -> Tuple[str, str]:
     return title, author
 
 
-def merge_seed_instruments(target: Dict[str, str], seed: Dict[str, str]) -> bool:
+def merge_seed_instruments(target: Dict[str, object], seed: Dict[str, object]) -> bool:
     changed = False
     for key in INSTRUMENT_KEYS:
-        current = str(target.get(key, "")).strip()
-        incoming = str(seed.get(key, "")).strip()
-        if not current and incoming:
-            target[key] = incoming
-            changed = True
+        if key in MULTI_INSTRUMENT_KEYS:
+            cur = list_strings(target.get(key, []))
+            inc = list_strings(seed.get(key, []))
+            if not cur and inc:
+                target[key] = list(inc)
+                changed = True
+        else:
+            current = str(target.get(key, "")).strip()
+            incoming_val = seed.get(key, "")
+            if isinstance(incoming_val, list):
+                inc_list = list_strings(incoming_val)
+                incoming = inc_list[0] if inc_list else ""
+            else:
+                incoming = str(incoming_val).strip()
+            if not current and incoming:
+                target[key] = incoming
+                changed = True
     return changed
 
 
@@ -97,8 +119,8 @@ def merge_seed_into_data(data: Dict[str, object], fill_instruments_from_seed: bo
         if not seed_song:
             continue
 
-        instruments = song.get("instruments", blank_instruments())
-        seed_instruments = seed_song.get("instruments", blank_instruments())
+        instruments = dict(song.get("instruments") or blank_instruments())
+        seed_instruments = dict(seed_song.get("instruments") or blank_instruments())
         if merge_seed_instruments(instruments, seed_instruments):
             song["instruments"] = instruments
             changed = True
@@ -110,7 +132,14 @@ def count_musicians_raw(song: Dict[str, object]) -> int:
     instruments = song.get("instruments", {})
     if not isinstance(instruments, dict):
         return 0
-    return sum(1 for key in INSTRUMENT_KEYS if str(instruments.get(key, "")).strip())
+    total = 0
+    for key in INSTRUMENT_KEYS:
+        raw = instruments.get(key)
+        if key in MULTI_INSTRUMENT_KEYS:
+            total += len(list_strings(raw))
+        elif str(raw or "").strip():
+            total += 1
+    return total
 
 
 def prune_songs_with_no_musicians(data: Dict[str, object]) -> bool:
@@ -139,26 +168,44 @@ def prune_songs_with_no_musicians(data: Dict[str, object]) -> bool:
     return True
 
 
-def coerce_instruments_field(instruments: object) -> Tuple[Dict[str, str], bool]:
+def coerce_instruments_field(instruments: object) -> Tuple[Dict[str, object], bool]:
     """
-    DB on disk should map instrument keys to player name strings.
-    Tolerate older/alternate shapes (e.g. nested dicts) so joins/hearts keep working.
+    Persisted shape: single slots are strings; chitarra/voce are lists of names.
+    Migrates legacy strings for multi keys to one-element lists.
     """
     if not isinstance(instruments, dict):
         return blank_instruments(), True
 
     dirty = False
-    normalized = blank_instruments()
+    normalized: Dict[str, object] = blank_instruments()
     for key in INSTRUMENT_KEYS:
-        raw = instruments.get(key, "")
-        if isinstance(raw, dict):
-            name = str(raw.get("playerName", "") or raw.get("name", "") or "").strip()
-            dirty = True
-        else:
-            name = str(raw).strip() if raw is not None else ""
-            if raw != name:
+        raw = instruments.get(key)
+        if key in MULTI_INSTRUMENT_KEYS:
+            if isinstance(raw, dict):
+                name = str(raw.get("playerName", "") or raw.get("name", "") or "").strip()
+                players = [name] if name else []
                 dirty = True
-        normalized[key] = name
+            else:
+                players = list_strings(raw)
+                if not isinstance(raw, list):
+                    dirty = True
+                elif raw != players:
+                    dirty = True
+            normalized[key] = players
+        else:
+            if isinstance(raw, dict):
+                name = str(raw.get("playerName", "") or raw.get("name", "") or "").strip()
+                normalized[key] = name
+                dirty = True
+            elif isinstance(raw, list):
+                lst = list_strings(raw)
+                normalized[key] = lst[0] if lst else ""
+                dirty = True
+            else:
+                name = str(raw).strip() if raw is not None else ""
+                if raw != name:
+                    dirty = True
+                normalized[key] = name
 
     extra_keys = set(instruments.keys()) - set(INSTRUMENT_KEYS)
     if extra_keys:
@@ -232,8 +279,27 @@ def save_db(data: Dict[str, object]) -> None:
 
 def enrich_song(song: Dict[str, object]) -> Dict[str, object]:
     instruments = song.get("instruments", {})
-    normalized = {key: str(instruments.get(key, "")).strip() for key in INSTRUMENT_KEYS}
-    participants = sum(1 for value in normalized.values() if value)
+    if not isinstance(instruments, dict):
+        instruments = {}
+
+    participants = 0
+    enriched_instruments: Dict[str, Dict[str, object]] = {}
+    for key in INSTRUMENT_KEYS:
+        if key in MULTI_INSTRUMENT_KEYS:
+            players = list_strings(instruments.get(key, []))
+        else:
+            players = [str(instruments.get(key, "")).strip()] if str(instruments.get(key, "")).strip() else []
+        participants += len(players)
+        display = " · ".join(players)
+        is_multi = key in MULTI_INSTRUMENT_KEYS
+        enriched_instruments[key] = {
+            "label": key.capitalize(),
+            "playerName": display,
+            "players": players,
+            "multi": is_multi,
+            "taken": False if is_multi else bool(display),
+        }
+
     hearts = song.get("hearts", [])
     dedup_hearts = []
     seen = set()
@@ -257,14 +323,7 @@ def enrich_song(song: Dict[str, object]) -> Dict[str, object]:
         "heartsCount": len(dedup_hearts),
         "participantsCount": participants,
         "eligibleForScaletta": participants >= 3,
-        "instruments": {
-            key: {
-                "label": key.capitalize(),
-                "playerName": normalized[key],
-                "taken": bool(normalized[key]),
-            }
-            for key in INSTRUMENT_KEYS
-        },
+        "instruments": enriched_instruments,
     }
 
 
@@ -339,7 +398,10 @@ def propose_song(payload: dict) -> Tuple[dict, int]:
             "hearts": [],
             "instruments": blank_instruments(),
         }
-        song["instruments"][instrument] = musician_name
+        if instrument in MULTI_INSTRUMENT_KEYS:
+            song["instruments"][instrument] = [musician_name]
+        else:
+            song["instruments"][instrument] = musician_name
         data["songs"].append(song)
         data["nextId"] += 1
         save_db(data)
@@ -392,20 +454,36 @@ def join_song(song_id: int, payload: dict) -> Tuple[dict, int]:
         if not song:
             return {"error": "Song not found"}, 404
 
-        instruments = song.get("instruments", blank_instruments())
-        current_player = str(instruments.get(instrument, "")).strip()
-        musician_key = normalize_label(musician_name)
-        current_key = normalize_label(current_player)
+        instruments = dict(song.get("instruments") or blank_instruments())
 
-        if current_player and current_key != musician_key:
-            return {"error": "Instrument slot already taken", "currentPlayer": current_player}, 409
-
-        if current_player and current_key == musician_key:
-            instruments[instrument] = ""
-            action = "removed"
+        if instrument in MULTI_INSTRUMENT_KEYS:
+            players = list_strings(instruments.get(instrument, []))
+            musician_key = normalize_label(musician_name)
+            existing_index = next(
+                (idx for idx, p in enumerate(players) if normalize_label(str(p)) == musician_key),
+                -1,
+            )
+            if existing_index >= 0:
+                players.pop(existing_index)
+                action = "removed"
+            else:
+                players.append(musician_name)
+                action = "added"
+            instruments[instrument] = players
         else:
-            instruments[instrument] = musician_name
-            action = "added"
+            current_player = str(instruments.get(instrument, "")).strip()
+            musician_key = normalize_label(musician_name)
+            current_key = normalize_label(current_player)
+
+            if current_player and current_key != musician_key:
+                return {"error": "Instrument slot already taken", "currentPlayer": current_player}, 409
+
+            if current_player and current_key == musician_key:
+                instruments[instrument] = ""
+                action = "removed"
+            else:
+                instruments[instrument] = musician_name
+                action = "added"
 
         song["instruments"] = instruments
         save_db(data)
@@ -425,13 +503,21 @@ def leave_song(song_id: int, payload: dict) -> Tuple[dict, int]:
         if not song:
             return {"error": "Song not found"}, 404
 
-        instruments = song.get("instruments", blank_instruments())
+        instruments = dict(song.get("instruments") or blank_instruments())
         cleared: List[str] = []
         for key in INSTRUMENT_KEYS:
-            current_player = str(instruments.get(key, "")).strip()
-            if current_player and normalize_label(current_player) == musician_key:
-                instruments[key] = ""
-                cleared.append(key)
+            if key in MULTI_INSTRUMENT_KEYS:
+                players = list_strings(instruments.get(key, []))
+                before = len(players)
+                players = [p for p in players if normalize_label(str(p)) != musician_key]
+                if len(players) != before:
+                    instruments[key] = players
+                    cleared.append(key)
+            else:
+                current_player = str(instruments.get(key, "")).strip()
+                if current_player and normalize_label(current_player) == musician_key:
+                    instruments[key] = ""
+                    cleared.append(key)
 
         song["instruments"] = instruments
         save_db(data)

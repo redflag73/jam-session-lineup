@@ -27,6 +27,19 @@ const instrumentLabels = {
   altro: "Altro",
 };
 
+function slotPlayers(slot) {
+  if (!slot) {
+    return [];
+  }
+  if (Array.isArray(slot.players)) {
+    return slot.players.filter(Boolean);
+  }
+  if (slot.playerName) {
+    return [slot.playerName];
+  }
+  return [];
+}
+
 let pendingJoinSongId = null;
 
 function parseSongId(raw) {
@@ -163,17 +176,23 @@ function formatMusiciansDetail(song) {
 function countOpenInstrumentSlots(song) {
   return Object.keys(instrumentLabels).filter((key) => {
     const slot = song.instruments[key];
-    return slot && !slot.taken;
+    if (!slot) {
+      return false;
+    }
+    if (slot.multi) {
+      return true;
+    }
+    return !slot.taken;
   }).length;
 }
 
 function currentUserInstrumentKeys(song) {
   return Object.keys(instrumentLabels).filter((key) => {
     const slot = song.instruments[key];
-    if (!slot || !slot.taken || !slot.playerName) {
+    if (!slot) {
       return false;
     }
-    return isCurrentMusician(slot.playerName);
+    return slotPlayers(slot).some((name) => isCurrentMusician(name));
   });
 }
 
@@ -319,7 +338,13 @@ function openJoinModal(songId) {
 
   const freeKeys = Object.keys(instrumentLabels).filter((key) => {
     const slot = song.instruments[key];
-    return slot && !slot.taken;
+    if (!slot) {
+      return false;
+    }
+    if (slot.multi) {
+      return true;
+    }
+    return !slot.taken;
   });
 
   if (freeKeys.length === 0) {
