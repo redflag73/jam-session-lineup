@@ -21,12 +21,12 @@
       "id": 2,
       "songTitle": "Have You Ever Seen The Rain",
       "author": "CCR",
-      "tone": "Fabrizio Ciampa",
+      "tone": "Qualsiasi",
       "proposedBy": "Fabrizio Ciampa",
       "hearts": [],
       "instruments": {
         "chitarra": "",
-        "basso": "",
+        "basso": "Fabrizio Ciampa",
         "batteria": "",
         "tastiere": "",
         "voce": "",
@@ -245,7 +245,7 @@
       "id": 17,
       "songTitle": "Somethin' Stupid",
       "author": "Robbie Williams, Nicole Kidman",
-      "tone": "Tonalità originale (vedi video)",
+      "tone": "Tonalità originale",
       "proposedBy": "Raffaele (Redways)",
       "hearts": [],
       "instruments": {
@@ -293,11 +293,11 @@
       "id": 20,
       "songTitle": "Just Breathe",
       "author": "Pearl Jam",
-      "tone": "Danny West",
+      "tone": "Tonalità originale",
       "proposedBy": "Danny West",
       "hearts": [],
       "instruments": {
-        "chitarra": "",
+        "chitarra": "Danny West",
         "basso": "",
         "batteria": "",
         "tastiere": "",
@@ -309,11 +309,11 @@
       "id": 21,
       "songTitle": "Dust in the Wind",
       "author": "Kansas",
-      "tone": "Danny West",
+      "tone": "Tonalità originale",
       "proposedBy": "Danny West",
       "hearts": [],
       "instruments": {
-        "chitarra": "",
+        "chitarra": "Danny West",
         "basso": "",
         "batteria": "",
         "tastiere": "",
@@ -325,11 +325,11 @@
       "id": 22,
       "songTitle": "Zebra",
       "author": "John Butler Trio",
-      "tone": "Danny West",
+      "tone": "Tonalità originale",
       "proposedBy": "Danny West",
       "hearts": [],
       "instruments": {
-        "chitarra": "",
+        "chitarra": "Danny West",
         "basso": "",
         "batteria": "",
         "tastiere": "",
@@ -341,7 +341,7 @@
       "id": 23,
       "songTitle": "In My Place",
       "author": "Coldplay",
-      "tone": "Roberto Mariani",
+      "tone": "-1 tono",
       "proposedBy": "Roberto Mariani",
       "hearts": [],
       "instruments": {
@@ -349,7 +349,7 @@
         "basso": "",
         "batteria": "",
         "tastiere": "",
-        "voce": "",
+        "voce": "Roberto Mariani",
         "altro": ""
       }
     },
@@ -357,7 +357,7 @@
       "id": 24,
       "songTitle": "Fields of Gold",
       "author": "Sting",
-      "tone": "Roberto Mariani",
+      "tone": "-1 tono",
       "proposedBy": "Roberto Mariani",
       "hearts": [],
       "instruments": {
@@ -365,7 +365,7 @@
         "basso": "",
         "batteria": "",
         "tastiere": "",
-        "voce": "",
+        "voce": "Roberto Mariani",
         "altro": ""
       }
     },
@@ -373,7 +373,7 @@
       "id": 25,
       "songTitle": "Rimmel",
       "author": "Francesco De Gregori",
-      "tone": "Roberto Mariani",
+      "tone": "Sono meglio dell'originale",
       "proposedBy": "Roberto Mariani",
       "hearts": [],
       "instruments": {
@@ -381,7 +381,7 @@
         "basso": "",
         "batteria": "",
         "tastiere": "",
-        "voce": "",
+        "voce": "Roberto Mariani",
         "altro": ""
       }
     },
@@ -389,12 +389,12 @@
       "id": 26,
       "songTitle": "Money",
       "author": "Pink Floyd",
-      "tone": "Francesco Vono",
+      "tone": "Sono meglio dell'originale",
       "proposedBy": "Francesco Vono",
       "hearts": [],
       "instruments": {
         "chitarra": "",
-        "basso": "",
+        "basso": "Francesco Vono",
         "batteria": "",
         "tastiere": "",
         "voce": "",

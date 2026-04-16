@@ -18,6 +18,7 @@ INDEX_FILE = ROOT_DIR / "templates" / "index.html"
 STATIC_DIR = ROOT_DIR / "static"
 INSTRUMENT_KEYS = ["chitarra", "basso", "batteria", "tastiere", "voce", "altro"]
 LOCK = threading.Lock()
+_LAST_SEED_SIGNATURE: Tuple[float, int] | None = None
 
 
 def normalize_label(value: str) -> str:
@@ -30,7 +31,67 @@ def blank_instruments() -> Dict[str, str]:
     return {key: "" for key in INSTRUMENT_KEYS}
 
 
+def song_identity(song: Dict[str, object]) -> Tuple[str, str]:
+    title = normalize_label(str(song.get("songTitle", "")))
+    author = normalize_label(str(song.get("author", "")))
+    return title, author
+
+
+def seed_signature() -> Tuple[float, int] | None:
+    if not SEED_DATA_FILE.exists():
+        return None
+    stat = SEED_DATA_FILE.stat()
+    return stat.st_mtime, stat.st_size
+
+
+def merge_seed_instruments(target: Dict[str, str], seed: Dict[str, str]) -> bool:
+    changed = False
+    for key in INSTRUMENT_KEYS:
+        current = str(target.get(key, "")).strip()
+        incoming = str(seed.get(key, "")).strip()
+        if not current and incoming:
+            target[key] = incoming
+            changed = True
+    return changed
+
+
+def merge_seed_into_data(data: Dict[str, object]) -> bool:
+    if not SEED_DATA_FILE.exists():
+        return False
+
+    with SEED_DATA_FILE.open("r", encoding="utf-8") as handle:
+        seed_payload = json.load(handle)
+
+    seed_songs = seed_payload.get("songs", [])
+    seed_by_id = {song.get("id"): song for song in seed_songs if song.get("id") is not None}
+    seed_by_identity = {}
+    for song in seed_songs:
+        seed_by_identity[song_identity(song)] = song
+
+    changed = False
+    for song in data.get("songs", []):
+        seed_song = None
+        song_id = song.get("id")
+        if song_id in seed_by_id:
+            seed_song = seed_by_id[song_id]
+        else:
+            seed_song = seed_by_identity.get(song_identity(song))
+
+        if not seed_song:
+            continue
+
+        instruments = song.get("instruments", blank_instruments())
+        seed_instruments = seed_song.get("instruments", blank_instruments())
+        if merge_seed_instruments(instruments, seed_instruments):
+            song["instruments"] = instruments
+            changed = True
+
+    return changed
+
+
 def load_db() -> Dict[str, object]:
+    global _LAST_SEED_SIGNATURE
+
     if not DATA_FILE.exists():
         # First boot on cloud: initialize persistent data from bundled seed file.
         if SEED_DATA_FILE.exists():
@@ -47,6 +108,13 @@ def load_db() -> Dict[str, object]:
         songs = data.get("songs", [])
         max_id = max([song.get("id", 0) for song in songs], default=0)
         data["nextId"] = max_id + 1
+
+    signature = seed_signature()
+    if signature and signature != _LAST_SEED_SIGNATURE:
+        if merge_seed_into_data(data):
+            save_db(data)
+        _LAST_SEED_SIGNATURE = signature
+
     return data
 
 

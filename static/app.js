@@ -1,10 +1,8 @@
 const state = {
-  songs: [],
-  scaletta: [],
+  rankedSongs: [],
 };
 
 const songsList = document.getElementById("songsList");
-const scalettaTable = document.getElementById("scalettaTable");
 const statusMsg = document.getElementById("statusMsg");
 const refreshBtn = document.getElementById("refreshBtn");
 const musicianNameInput = document.getElementById("musicianName");
@@ -13,6 +11,13 @@ const proposalSongTitle = document.getElementById("proposalSongTitle");
 const proposalAuthor = document.getElementById("proposalAuthor");
 const proposalTone = document.getElementById("proposalTone");
 const proposalInstrument = document.getElementById("proposalInstrument");
+
+const joinModal = document.getElementById("joinModal");
+const joinModalSong = document.getElementById("joinModalSong");
+const joinInstrument = document.getElementById("joinInstrument");
+const joinCancel = document.getElementById("joinCancel");
+const joinConfirm = document.getElementById("joinConfirm");
+
 const instrumentLabels = {
   chitarra: "Chitarra",
   basso: "Basso",
@@ -21,6 +26,8 @@ const instrumentLabels = {
   voce: "Voce",
   altro: "Altro",
 };
+
+let pendingJoinSongId = null;
 
 refreshBtn.addEventListener("click", () => {
   loadSongs();
@@ -35,8 +42,41 @@ proposalForm.addEventListener("submit", async (event) => {
   await submitProposal();
 });
 
+joinCancel.addEventListener("click", () => closeJoinModal());
+joinModal.querySelectorAll("[data-close-modal]").forEach((node) => {
+  node.addEventListener("click", () => closeJoinModal());
+});
+
+joinConfirm.addEventListener("click", async () => {
+  if (!pendingJoinSongId) {
+    closeJoinModal();
+    return;
+  }
+  const instrument = joinInstrument.value;
+  if (!instrument) {
+    setStatus("Seleziona uno strumento");
+    return;
+  }
+  closeJoinModal();
+  await joinSong(pendingJoinSongId, instrument);
+});
+
 function currentMusician() {
   return musicianNameInput.value.trim();
+}
+
+function rankSongs(songs) {
+  return [...songs].sort((left, right) => {
+    if (right.participantsCount !== left.participantsCount) {
+      return right.participantsCount - left.participantsCount;
+    }
+    if (right.heartsCount !== left.heartsCount) {
+      return right.heartsCount - left.heartsCount;
+    }
+    return String(left.songTitle).localeCompare(String(right.songTitle), "it", {
+      sensitivity: "base",
+    });
+  });
 }
 
 async function loadSongs() {
@@ -50,74 +90,117 @@ async function loadSongs() {
     if (data.error) {
       throw new Error(data.error);
     }
-    state.songs = data.songs || [];
-    state.scaletta = data.scaletta || [];
+    const songs = data.songs || [];
+    state.rankedSongs = rankSongs(songs);
     renderSongs();
-    renderScaletta();
-    setStatus(`Caricati ${state.songs.length} brani`);
+    setStatus(`Caricati ${songs.length} brani`);
   } catch (error) {
     setStatus(error.message);
   }
 }
 
+function sheetHeader() {
+  return `
+    <div class="sheet-row sheet-header">
+      <div class="col col-pos">Pos</div>
+      <div class="col col-title">Brano</div>
+      <div class="col col-meta">Autore / Tonalità</div>
+      <div class="col col-musicians">Musicisti</div>
+      <div class="col col-love">Love</div>
+    </div>
+  `;
+}
+
+function formatMusiciansDetail(song) {
+  const parts = [];
+  Object.entries(instrumentLabels).forEach(([key, label]) => {
+    const slot = song.instruments[key];
+    if (!slot) {
+      return;
+    }
+    const name = slot.playerName;
+    if (name) {
+      parts.push(`${label}: ${name}`);
+    }
+  });
+  return parts.join(" · ");
+}
+
+function countOpenInstrumentSlots(song) {
+  return Object.keys(instrumentLabels).filter((key) => {
+    const slot = song.instruments[key];
+    return slot && !slot.taken;
+  }).length;
+}
+
+function renderLoveCell(song) {
+  const myHeart = Array.isArray(song.hearts)
+    ? song.hearts.some((name) => isCurrentMusician(name))
+    : false;
+
+  return `
+    <div class="love-cell">
+      <button type="button" class="heart-btn ${myHeart ? "heart-btn-active" : ""}" data-heart-song-id="${song.id}" aria-label="Love per questo brano">
+        ❤
+      </button>
+      <span class="love-count">${song.heartsCount}</span>
+    </div>
+  `;
+}
+
+function renderMusiciansCell(song) {
+  const openSlots = countOpenInstrumentSlots(song);
+  const detail = formatMusiciansDetail(song);
+  const countLine = `<div class="musicians-count">${song.participantsCount} in formazione</div>`;
+  const detailLine = detail
+    ? `<div class="musicians-detail">${escapeHtml(detail)}</div>`
+    : `<div class="musicians-detail muted">Nessun musicista ancora</div>`;
+
+  if (openSlots === 0) {
+    return `
+      <div class="musicians-cell">
+        ${countLine}
+        ${detailLine}
+        <button type="button" class="tiny-btn tiny-btn-disabled" disabled>Completo</button>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="musicians-cell">
+      ${countLine}
+      ${detailLine}
+      <button type="button" class="tiny-btn" data-open-join="${song.id}">Aggiungiti</button>
+    </div>
+  `;
+}
+
 function renderSongs() {
-  if (state.songs.length === 0) {
-    songsList.innerHTML = "<p>Nessun brano disponibile al momento.</p>";
+  if (state.rankedSongs.length === 0) {
+    songsList.innerHTML = "<p class=\"empty-msg\">Nessun brano disponibile al momento.</p>";
     return;
   }
 
-  songsList.innerHTML = state.songs
-    .map((song) => {
-      const instrumentButtons = Object.entries(instrumentLabels)
-        .map(([key, label]) => {
-          const instrument = song.instruments[key];
-          if (!instrument) {
-            return "";
-          }
-
-          const taken = instrument.taken;
-          const takenByMe = taken && isCurrentMusician(instrument.playerName);
-          let content = "";
-          if (takenByMe) {
-            content = `
-                <button class="slot-btn slot-btn-remove" data-song-id="${song.id}" data-instrument="${key}">
-                  ${escapeHtml(label)}: libera il mio posto
-                </button>
-              `;
-          } else if (taken) {
-            content = `<div class="slot-taken">${escapeHtml(label)}: ${escapeHtml(instrument.playerName)}</div>`;
-          } else {
-            content = `
-                <button class="slot-btn" data-song-id="${song.id}" data-instrument="${key}">
-                  ${escapeHtml(label)}: suono io
-                </button>
-              `;
-          }
-          return `<div>${content}</div>`;
-        })
-        .join("");
-
-      const myHeart = Array.isArray(song.hearts)
-        ? song.hearts.some((name) => isCurrentMusician(name))
-        : false;
-
+  const rows = state.rankedSongs
+    .map((song, idx) => {
+      const hot = Boolean(song.eligibleForScaletta);
+      const hotBadge = hot ? `<span class="hot-badge" title="Almeno 3 musicisti">HOT</span>` : "";
       return `
-        <article class="song-card">
-          <div class="song-head">
-            <h3>${escapeHtml(song.songTitle)}</h3>
-            <div class="tone">${escapeHtml(song.author || "Autore non indicato")} - ${escapeHtml(song.tone || "Tonalità non indicata")}</div>
+        <div class="sheet-row ${hot ? "sheet-row-hot" : ""}">
+          <div class="col col-pos">${idx + 1}</div>
+          <div class="col col-title">
+            ${escapeHtml(song.songTitle)}
+            ${hotBadge}
           </div>
-          <div class="song-meta">
-            <button class="heart-btn ${myHeart ? "heart-btn-active" : ""}" data-heart-song-id="${song.id}">
-              ❤ ${song.heartsCount} ${myHeart ? "(votato da te)" : ""}
-            </button>
-            <span>${song.participantsCount} musicisti</span>
-          </div>
-          <div class="instruments-grid">${instrumentButtons}</div>
-        </article>
+          <div class="col col-meta">${escapeHtml(song.author || "Autore non indicato")} / ${escapeHtml(song.tone || "Tonalità non indicata")}</div>
+          <div class="col col-musicians">${renderMusiciansCell(song)}</div>
+          <div class="col col-love">${renderLoveCell(song)}</div>
+        </div>
       `;
     })
     .join("");
+
+  songsList.innerHTML = `${sheetHeader()}${rows}`;
 
   document.querySelectorAll("[data-heart-song-id]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -126,49 +209,58 @@ function renderSongs() {
     });
   });
 
-  document.querySelectorAll("[data-instrument]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const songId = Number(button.getAttribute("data-song-id"));
-      const instrument = button.getAttribute("data-instrument");
-      await joinSong(songId, instrument);
+  document.querySelectorAll("[data-open-join]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const songId = Number(button.getAttribute("data-open-join"));
+      openJoinModal(songId);
     });
   });
 }
 
-function renderScaletta() {
-  if (state.scaletta.length === 0) {
-    scalettaTable.innerHTML =
-      "<tbody><tr><td>Nessun brano con almeno 3 musicisti per ora.</td></tr></tbody>";
+function openJoinModal(songId) {
+  const musicianName = currentMusician();
+  if (!musicianName) {
+    setStatus("Inserisci il tuo nome prima di aggiungerti");
+    musicianNameInput.focus();
     return;
   }
 
-  const header = `
-    <thead>
-      <tr>
-        <th>Pos</th>
-        <th>Brano</th>
-        <th>Tonalità</th>
-        <th>Musicisti</th>
-        <th>Love</th>
-      </tr>
-    </thead>
-  `;
+  const song = state.rankedSongs.find((item) => item.id === songId);
+  if (!song) {
+    setStatus("Brano non trovato");
+    return;
+  }
 
-  const rows = state.scaletta
-    .map((song, idx) => {
-      return `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${escapeHtml(song.songTitle)}</td>
-          <td>${escapeHtml(song.author || "-")} / ${escapeHtml(song.tone || "-")}</td>
-          <td>${song.participantsCount}</td>
-          <td>${song.heartsCount}</td>
-        </tr>
-      `;
-    })
-    .join("");
+  pendingJoinSongId = songId;
+  joinModalSong.textContent = `${song.songTitle} — ${song.author || ""}`.trim();
 
-  scalettaTable.innerHTML = `${header}<tbody>${rows}</tbody>`;
+  joinInstrument.innerHTML = "";
+
+  const freeKeys = Object.keys(instrumentLabels).filter((key) => {
+    const slot = song.instruments[key];
+    return slot && !slot.taken;
+  });
+
+  if (freeKeys.length === 0) {
+    joinInstrument.innerHTML = `<option value="">Nessuno slot libero</option>`;
+    joinInstrument.disabled = true;
+    joinConfirm.disabled = true;
+  } else {
+    joinInstrument.disabled = false;
+    joinConfirm.disabled = false;
+    joinInstrument.appendChild(new Option("Seleziona strumento", "", true, true));
+    freeKeys.forEach((key) => {
+      joinInstrument.appendChild(new Option(instrumentLabels[key], key));
+    });
+  }
+
+  joinModal.hidden = false;
+}
+
+function closeJoinModal() {
+  pendingJoinSongId = null;
+  joinModal.hidden = true;
+  joinInstrument.innerHTML = "";
 }
 
 async function voteSong(songId) {

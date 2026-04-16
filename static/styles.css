@@ -72,15 +72,17 @@ button:hover {
   background: #1d4ed8;
 }
 
+button.secondary {
+  background: #6b7280;
+}
+
+button.secondary:hover {
+  background: #4b5563;
+}
+
 #statusMsg {
   font-size: 14px;
   color: #4b5563;
-}
-
-.songs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 12px;
 }
 
 .proposal-form {
@@ -106,38 +108,148 @@ button:hover {
   grid-column: 1 / -1;
 }
 
-.song-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px;
-  background: #fff;
-}
-
-.song-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.song-head h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.tone {
+.hint {
+  margin-top: 0;
+  color: #4b5563;
   font-size: 14px;
+}
+
+.empty-msg {
+  margin: 0;
   color: #4b5563;
 }
 
-.song-meta {
-  margin: 10px 0;
+.sheet-list {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sheet-row {
+  display: grid;
+  grid-template-columns: 52px minmax(160px, 1.4fr) minmax(200px, 1.6fr) minmax(220px, 1.8fr) minmax(120px, 0.9fr);
+  gap: 10px;
+  padding: 10px 12px;
+  align-items: start;
+  border-top: 1px solid #eef2f7;
+}
+
+.sheet-row:first-child {
+  border-top: none;
+}
+
+.sheet-row-hot {
+  background: #fff7ed;
+  border-left: 4px solid #f97316;
+}
+
+.sheet-header {
+  background: #f9fafb;
+  font-weight: 600;
+  font-size: 13px;
+  color: #374151;
+}
+
+.col {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.col-title {
+  font-weight: 600;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hot-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #9a3412;
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+}
+
+.col-meta {
+  color: #4b5563;
+}
+
+.col-pos {
+  color: #6b7280;
+  text-align: right;
+  padding-right: 4px;
+}
+
+.musicians-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.musicians-count {
+  font-weight: 600;
+}
+
+.musicians-detail {
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.35;
+}
+
+.muted {
+  color: #9ca3af;
+}
+
+.tiny-btn {
+  align-self: flex-start;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.tiny-btn-disabled {
+  background: #d1d5db;
+  color: #4b5563;
+  cursor: not-allowed;
+}
+
+.love-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.love-count {
+  font-weight: 600;
+  color: #111827;
+}
+
+.love-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 16px;
+}
+
+.love-pill-static {
+  border: 1px solid #fecaca;
 }
 
 .heart-btn {
   background: #ef4444;
+  padding: 6px 10px;
+  min-width: 44px;
 }
 
 .heart-btn:hover {
@@ -148,67 +260,93 @@ button:hover {
   background: #b91c1c;
 }
 
-.instruments-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
 }
 
-.slot-btn {
-  width: 100%;
-  text-align: left;
-  background: #2563eb;
+.modal[hidden] {
+  display: none;
 }
 
-.slot-btn-remove {
-  background: #6b7280;
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
 }
 
-.slot-btn-remove:hover {
-  background: #4b5563;
-}
-
-.slot-taken {
-  background: #f3f4f6;
+.modal-card {
+  position: relative;
+  max-width: 420px;
+  margin: 10vh auto 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 8px;
-  font-size: 14px;
-  color: #374151;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
 }
 
-.hint {
-  margin-top: 0;
+.modal-card h3 {
+  margin: 0 0 6px;
+}
+
+.modal-sub {
+  margin: 0 0 12px;
   color: #4b5563;
   font-size: 14px;
 }
 
-.table-wrap {
-  overflow-x: auto;
+.modal-label {
+  display: block;
+  margin-bottom: 6px;
 }
 
-table {
+#joinInstrument {
   width: 100%;
-  border-collapse: collapse;
-  min-width: 500px;
-}
-
-th,
-td {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   padding: 8px;
-  text-align: left;
+  margin-bottom: 14px;
 }
 
-th {
-  background: #f9fafb;
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .sheet-row {
+    grid-template-columns: 40px minmax(140px, 1fr);
+    grid-auto-rows: auto;
+  }
+
+  .col-pos {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    text-align: left;
+    padding-right: 0;
+  }
+
+  .col-title {
+    grid-column: 2;
+  }
+
+  .col-meta {
+    grid-column: 2;
+  }
+
+  .col-musicians {
+    grid-column: 1 / -1;
+  }
+
+  .col-love {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 720px) {
-  .instruments-grid {
-    grid-template-columns: 1fr;
-  }
-
   .identity input {
     min-width: 200px;
   }

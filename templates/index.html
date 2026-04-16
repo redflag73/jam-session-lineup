@@ -25,6 +25,14 @@
       </section>
 
       <section class="panel">
+        <h2>Brani (classifica)</h2>
+        <p class="hint">
+          Lista unica ordinata: prima più musicisti, poi più love. I brani con almeno 3 musicisti sono evidenziati come HOT.
+        </p>
+        <div id="songsList" class="sheet-list"></div>
+      </section>
+
+      <section class="panel">
         <h2>Proponi un nuovo brano</h2>
         <form id="proposalForm" class="proposal-form">
           <div class="field">
@@ -56,22 +64,21 @@
           </div>
         </form>
       </section>
-
-      <section class="panel">
-        <h2>Brani proposti</h2>
-        <div id="songsList" class="songs-grid"></div>
-      </section>
-
-      <section class="panel">
-        <h2>Scaletta per la serata</h2>
-        <p class="hint">
-          Include i brani con almeno 3 musicisti. Priorità ai brani con più musicisti e, a parità, più love.
-        </p>
-        <div class="table-wrap">
-          <table id="scalettaTable"></table>
-        </div>
-      </section>
     </main>
+
+    <div id="joinModal" class="modal" hidden>
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="joinModalTitle">
+        <h3 id="joinModalTitle">Aggiungiti al brano</h3>
+        <p id="joinModalSong" class="modal-sub"></p>
+        <label class="modal-label" for="joinInstrument">Scegli lo strumento</label>
+        <select id="joinInstrument"></select>
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="joinCancel">Annulla</button>
+          <button type="button" id="joinConfirm">Conferma</button>
+        </div>
+      </div>
+    </div>
 
     <script src="/static/app.js"></script>
   </body>
