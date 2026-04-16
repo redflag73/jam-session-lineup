@@ -18,6 +18,14 @@ INDEX_FILE = ROOT_DIR / "templates" / "index.html"
 STATIC_DIR = ROOT_DIR / "static"
 INSTRUMENT_KEYS = ["chitarra", "basso", "batteria", "tastiere", "voce", "altro"]
 LOCK = threading.Lock()
+_LAST_SEED_SIGNATURE_FOR_INSTRUMENTS: Tuple[float, int] | None = None
+
+
+def seed_file_signature() -> Tuple[float, int] | None:
+    if not SEED_DATA_FILE.exists():
+        return None
+    stat = SEED_DATA_FILE.stat()
+    return stat.st_mtime, stat.st_size
 
 
 def normalize_label(value: str) -> str:
@@ -47,24 +55,9 @@ def merge_seed_instruments(target: Dict[str, str], seed: Dict[str, str]) -> bool
     return changed
 
 
-def merge_seed_meta(song: Dict[str, object], seed_song: Dict[str, object]) -> bool:
-    """Align canonical title / author / tone from bundled seed (fixes stale cloud DB)."""
-    changed = False
-    for key in ("songTitle", "author", "tone"):
-        seed_raw = seed_song.get(key)
-        if seed_raw is None:
-            continue
-        seed_str = str(seed_raw).strip()
-        if not seed_str:
-            continue
-        cur_str = str(song.get(key, "")).strip()
-        if seed_str != cur_str:
-            song[key] = seed_str
-            changed = True
-    return changed
-
-
-def merge_seed_into_data(data: Dict[str, object]) -> bool:
+def merge_seed_into_data(data: Dict[str, object], fill_instruments_from_seed: bool) -> bool:
+    if not fill_instruments_from_seed:
+        return False
     if not SEED_DATA_FILE.exists():
         return False
 
@@ -103,9 +96,6 @@ def merge_seed_into_data(data: Dict[str, object]) -> bool:
 
         if not seed_song:
             continue
-
-        if merge_seed_meta(song, seed_song):
-            changed = True
 
         instruments = song.get("instruments", blank_instruments())
         seed_instruments = seed_song.get("instruments", blank_instruments())
@@ -192,6 +182,8 @@ def normalize_song_record(song: Dict[str, object]) -> bool:
 
 
 def load_db() -> Dict[str, object]:
+    global _LAST_SEED_SIGNATURE_FOR_INSTRUMENTS
+
     if not DATA_FILE.exists():
         # First boot on cloud: initialize persistent data from bundled seed file.
         if SEED_DATA_FILE.exists():
@@ -219,8 +211,12 @@ def load_db() -> Dict[str, object]:
             save_db(data)
 
     if SEED_DATA_FILE.exists():
-        if merge_seed_into_data(data):
+        sig = seed_file_signature()
+        fill_instruments = sig is not None and sig != _LAST_SEED_SIGNATURE_FOR_INSTRUMENTS
+        if merge_seed_into_data(data, fill_instruments_from_seed=fill_instruments):
             save_db(data)
+        if fill_instruments and sig is not None:
+            _LAST_SEED_SIGNATURE_FOR_INSTRUMENTS = sig
 
     if prune_songs_with_no_musicians(data):
         save_db(data)
