@@ -13,6 +13,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 DATA_FILE = Path(os.getenv("LOCAL_DATA_FILE", "data/songs.json"))
 if not DATA_FILE.is_absolute():
     DATA_FILE = ROOT_DIR / DATA_FILE
+SEED_DATA_FILE = ROOT_DIR / "data" / "songs.json"
 INDEX_FILE = ROOT_DIR / "templates" / "index.html"
 STATIC_DIR = ROOT_DIR / "static"
 INSTRUMENT_KEYS = ["chitarra", "basso", "batteria", "tastiere", "voce", "altro"]
@@ -31,7 +32,15 @@ def blank_instruments() -> Dict[str, str]:
 
 def load_db() -> Dict[str, object]:
     if not DATA_FILE.exists():
-        return {"nextId": 1, "songs": []}
+        # First boot on cloud: initialize persistent data from bundled seed file.
+        if SEED_DATA_FILE.exists():
+            DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with SEED_DATA_FILE.open("r", encoding="utf-8") as src:
+                seed = json.load(src)
+            with DATA_FILE.open("w", encoding="utf-8") as dst:
+                json.dump(seed, dst, ensure_ascii=False, indent=2)
+        else:
+            return {"nextId": 1, "songs": []}
     with DATA_FILE.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
     if "nextId" not in data:
