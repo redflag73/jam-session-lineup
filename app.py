@@ -89,6 +89,48 @@ def merge_seed_into_data(data: Dict[str, object]) -> bool:
     return changed
 
 
+def coerce_instruments_field(instruments: object) -> Tuple[Dict[str, str], bool]:
+    """
+    DB on disk should map instrument keys to player name strings.
+    Tolerate older/alternate shapes (e.g. nested dicts) so joins/hearts keep working.
+    """
+    if not isinstance(instruments, dict):
+        return blank_instruments(), True
+
+    dirty = False
+    normalized = blank_instruments()
+    for key in INSTRUMENT_KEYS:
+        raw = instruments.get(key, "")
+        if isinstance(raw, dict):
+            name = str(raw.get("playerName", "") or raw.get("name", "") or "").strip()
+            dirty = True
+        else:
+            name = str(raw).strip() if raw is not None else ""
+            if raw != name:
+                dirty = True
+        normalized[key] = name
+
+    extra_keys = set(instruments.keys()) - set(INSTRUMENT_KEYS)
+    if extra_keys:
+        dirty = True
+
+    return normalized, dirty
+
+
+def normalize_song_record(song: Dict[str, object]) -> bool:
+    changed = False
+    raw_id = song.get("id")
+    if isinstance(raw_id, str) and raw_id.strip().isdigit():
+        song["id"] = int(raw_id.strip())
+        changed = True
+
+    coerced, instruments_dirty = coerce_instruments_field(song.get("instruments", {}))
+    if instruments_dirty:
+        song["instruments"] = coerced
+        changed = True
+    return changed
+
+
 def load_db() -> Dict[str, object]:
     global _LAST_SEED_SIGNATURE
 
@@ -108,6 +150,15 @@ def load_db() -> Dict[str, object]:
         songs = data.get("songs", [])
         max_id = max([song.get("id", 0) for song in songs], default=0)
         data["nextId"] = max_id + 1
+
+    songs = data.get("songs", [])
+    if isinstance(songs, list):
+        normalized_any = False
+        for song in songs:
+            if isinstance(song, dict) and normalize_song_record(song):
+                normalized_any = True
+        if normalized_any:
+            save_db(data)
 
     signature = seed_signature()
     if signature and signature != _LAST_SEED_SIGNATURE:
@@ -173,7 +224,12 @@ def build_payload(data: Dict[str, object]) -> Dict[str, List[Dict[str, object]]]
 
 def find_song(data: Dict[str, object], song_id: int):
     for song in data.get("songs", []):
-        if song.get("id") == song_id:
+        raw_id = song.get("id")
+        try:
+            stored_id = int(raw_id)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+        if stored_id == song_id:
             return song
     return None
 
@@ -301,7 +357,44 @@ def join_song(song_id: int, payload: dict) -> Tuple[dict, int]:
         return {"ok": True, "action": action}, 200
 
 
+def leave_song(song_id: int, payload: dict) -> Tuple[dict, int]:
+    """Remove the musician from every instrument slot on this song (same normalized name)."""
+    musician_name = str(payload.get("musicianName", "")).strip()
+    if not musician_name:
+        return {"error": "musicianName is required"}, 400
+    musician_key = normalize_label(musician_name)
+
+    with LOCK:
+        data = load_db()
+        song = find_song(data, song_id)
+        if not song:
+            return {"error": "Song not found"}, 404
+
+        instruments = song.get("instruments", blank_instruments())
+        cleared: List[str] = []
+        for key in INSTRUMENT_KEYS:
+            current_player = str(instruments.get(key, "")).strip()
+            if current_player and normalize_label(current_player) == musician_key:
+                instruments[key] = ""
+                cleared.append(key)
+
+        song["instruments"] = instruments
+        save_db(data)
+        if not cleared:
+            return {"ok": True, "action": "noop", "cleared": []}, 200
+        return {"ok": True, "action": "removed", "cleared": cleared}, 200
+
+
 class AppHandler(BaseHTTPRequestHandler):
+    def _request_path(self) -> str:
+        raw = self.path or "/"
+        raw = raw.split("?", 1)[0]
+        raw = raw.strip() or "/"
+        raw = re.sub(r"/{2,}", "/", raw)
+        if len(raw) > 1 and raw.endswith("/"):
+            raw = raw[:-1]
+        return raw or "/"
+
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -336,51 +429,67 @@ class AppHandler(BaseHTTPRequestHandler):
             return {}
 
     def do_GET(self):
-        if self.path == "/":
-            self._send_file(INDEX_FILE, "text/html; charset=utf-8")
-            return
-        if self.path == "/health":
-            self._send_json({"ok": True}, 200)
-            return
-        if self.path.startswith("/static/"):
-            relative = self.path.removeprefix("/static/")
-            file_path = (STATIC_DIR / relative).resolve()
-            if not str(file_path).startswith(str(STATIC_DIR.resolve())):
-                self.send_error(403, "Forbidden")
+        path = self._request_path()
+        try:
+            if path == "/":
+                self._send_file(INDEX_FILE, "text/html; charset=utf-8")
                 return
-            mime, _ = mimetypes.guess_type(str(file_path))
-            self._send_file(file_path, mime or "application/octet-stream")
-            return
-        if self.path == "/api/songs":
-            payload, status = get_songs()
-            self._send_json(payload, status)
-            return
-        self.send_error(404, "Not found")
+            if path == "/health":
+                self._send_json({"ok": True}, 200)
+                return
+            if path.startswith("/static/"):
+                relative = path.removeprefix("/static/")
+                file_path = (STATIC_DIR / relative).resolve()
+                if not str(file_path).startswith(str(STATIC_DIR.resolve())):
+                    self.send_error(403, "Forbidden")
+                    return
+                mime, _ = mimetypes.guess_type(str(file_path))
+                self._send_file(file_path, mime or "application/octet-stream")
+                return
+            if path == "/api/songs":
+                payload, status = get_songs()
+                self._send_json(payload, status)
+                return
+            self.send_error(404, "Not found")
+        except Exception as exc:  # noqa: BLE001
+            self._send_json({"error": f"Server error: {exc}"}, 500)
 
     def do_POST(self):
-        if self.path == "/api/songs":
-            payload = self._read_json_body()
-            response, status = propose_song(payload)
-            self._send_json(response, status)
-            return
+        path = self._request_path()
+        try:
+            if path == "/api/songs":
+                payload = self._read_json_body()
+                response, status = propose_song(payload)
+                self._send_json(response, status)
+                return
 
-        heart_match = re.fullmatch(r"/api/songs/(\d+)/heart", self.path)
-        if heart_match:
-            payload = self._read_json_body()
-            song_id = int(heart_match.group(1))
-            response, status = heart_song(song_id, payload)
-            self._send_json(response, status)
-            return
+            heart_match = re.fullmatch(r"/api/songs/(\d+)/heart", path)
+            if heart_match:
+                payload = self._read_json_body()
+                song_id = int(heart_match.group(1))
+                response, status = heart_song(song_id, payload)
+                self._send_json(response, status)
+                return
 
-        join_match = re.fullmatch(r"/api/songs/(\d+)/join", self.path)
-        if join_match:
-            payload = self._read_json_body()
-            song_id = int(join_match.group(1))
-            response, status = join_song(song_id, payload)
-            self._send_json(response, status)
-            return
+            join_match = re.fullmatch(r"/api/songs/(\d+)/join", path)
+            if join_match:
+                payload = self._read_json_body()
+                song_id = int(join_match.group(1))
+                response, status = join_song(song_id, payload)
+                self._send_json(response, status)
+                return
 
-        self.send_error(404, "Not found")
+            leave_match = re.fullmatch(r"/api/songs/(\d+)/leave", path)
+            if leave_match:
+                payload = self._read_json_body()
+                song_id = int(leave_match.group(1))
+                response, status = leave_song(song_id, payload)
+                self._send_json(response, status)
+                return
+
+            self._send_json({"error": "Not found"}, 404)
+        except Exception as exc:  # noqa: BLE001
+            self._send_json({"error": f"Server error: {exc}"}, 500)
 
 
 if __name__ == "__main__":

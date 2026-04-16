@@ -29,6 +29,15 @@ const instrumentLabels = {
 
 let pendingJoinSongId = null;
 
+function parseSongId(raw) {
+  const value = Number.parseInt(String(raw), 10);
+  return Number.isFinite(value) ? value : NaN;
+}
+
+function findSongById(songId) {
+  return state.rankedSongs.find((item) => parseSongId(item.id) === songId);
+}
+
 refreshBtn.addEventListener("click", () => {
   loadSongs();
 });
@@ -48,8 +57,11 @@ joinModal.querySelectorAll("[data-close-modal]").forEach((node) => {
 });
 
 joinConfirm.addEventListener("click", async () => {
-  if (!pendingJoinSongId) {
+  if (pendingJoinSongId === null) {
     closeJoinModal();
+    return;
+  }
+  if (!requireMusicianName()) {
     return;
   }
   const instrument = joinInstrument.value;
@@ -57,12 +69,34 @@ joinConfirm.addEventListener("click", async () => {
     setStatus("Seleziona uno strumento");
     return;
   }
+  const songId = pendingJoinSongId;
   closeJoinModal();
-  await joinSong(pendingJoinSongId, instrument);
+  await joinSong(songId, instrument);
 });
 
 function currentMusician() {
   return musicianNameInput.value.trim();
+}
+
+function requireMusicianName() {
+  if (currentMusician()) {
+    return true;
+  }
+  window.alert("Inserisci prima il tuo nome in alto, così possiamo registrare voti e strumenti correttamente.");
+  musicianNameInput.focus();
+  return false;
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    const preview = text.replace(/\s+/g, " ").slice(0, 160);
+    throw new Error(
+      `Risposta non valida dal server (HTTP ${response.status}). ${preview ? `Anteprima: ${preview}` : ""}`.trim()
+    );
+  }
 }
 
 function rankSongs(songs) {
@@ -83,7 +117,7 @@ async function loadSongs() {
   setStatus("Caricamento brani...");
   try {
     const response = await fetch("/api/songs");
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Errore nel caricamento dei brani");
     }
@@ -133,14 +167,35 @@ function countOpenInstrumentSlots(song) {
   }).length;
 }
 
+function currentUserInstrumentKeys(song) {
+  return Object.keys(instrumentLabels).filter((key) => {
+    const slot = song.instruments[key];
+    if (!slot || !slot.taken || !slot.playerName) {
+      return false;
+    }
+    return isCurrentMusician(slot.playerName);
+  });
+}
+
 function renderLoveCell(song) {
   const myHeart = Array.isArray(song.hearts)
     ? song.hearts.some((name) => isCurrentMusician(name))
     : false;
+  const songId = parseSongId(song.id);
+  if (!Number.isFinite(songId)) {
+    return `
+      <div class="love-cell">
+        <button type="button" class="heart-btn heart-btn-disabled" disabled aria-label="Love non disponibile per questo brano">
+          ❤
+        </button>
+        <span class="love-count">${song.heartsCount}</span>
+      </div>
+    `;
+  }
 
   return `
     <div class="love-cell">
-      <button type="button" class="heart-btn ${myHeart ? "heart-btn-active" : ""}" data-heart-song-id="${song.id}" aria-label="Love per questo brano">
+      <button type="button" class="heart-btn ${myHeart ? "heart-btn-active" : ""}" data-heart-song-id="${songId}" aria-label="Love per questo brano">
         ❤
       </button>
       <span class="love-count">${song.heartsCount}</span>
@@ -149,28 +204,46 @@ function renderLoveCell(song) {
 }
 
 function renderMusiciansCell(song) {
+  const songId = parseSongId(song.id);
   const openSlots = countOpenInstrumentSlots(song);
+  const myInstrumentKeys = currentUserInstrumentKeys(song);
+  const iParticipate = myInstrumentKeys.length > 0;
   const detail = formatMusiciansDetail(song);
   const countLine = `<div class="musicians-count">${song.participantsCount} in formazione</div>`;
   const detailLine = detail
     ? `<div class="musicians-detail">${escapeHtml(detail)}</div>`
     : `<div class="musicians-detail muted">Nessun musicista ancora</div>`;
 
-  if (openSlots === 0) {
+  if (!Number.isFinite(songId)) {
     return `
       <div class="musicians-cell">
         ${countLine}
         ${detailLine}
-        <button type="button" class="tiny-btn tiny-btn-disabled" disabled>Completo</button>
+        <button type="button" class="tiny-btn tiny-btn-disabled" disabled>Dati brano errati</button>
       </div>
     `;
   }
+
+  const actions = [];
+  if (openSlots > 0) {
+    actions.push(`<button type="button" class="tiny-btn" data-open-join="${songId}">Aggiungiti</button>`);
+  } else if (!iParticipate) {
+    actions.push(`<button type="button" class="tiny-btn tiny-btn-disabled" disabled>Completo</button>`);
+  }
+  if (iParticipate) {
+    actions.push(
+      `<button type="button" class="tiny-btn tiny-btn-leave" data-leave-song="${songId}">Lascia questo brano</button>`
+    );
+  }
+
+  const actionsRow =
+    actions.length > 0 ? `<div class="musicians-actions">${actions.join("")}</div>` : "";
 
   return `
     <div class="musicians-cell">
       ${countLine}
       ${detailLine}
-      <button type="button" class="tiny-btn" data-open-join="${song.id}">Aggiungiti</button>
+      ${actionsRow}
     </div>
   `;
 }
@@ -204,28 +277,36 @@ function renderSongs() {
 
   document.querySelectorAll("[data-heart-song-id]").forEach((button) => {
     button.addEventListener("click", async () => {
-      const songId = Number(button.getAttribute("data-heart-song-id"));
+      const songId = parseSongId(button.getAttribute("data-heart-song-id"));
       await voteSong(songId);
     });
   });
 
   document.querySelectorAll("[data-open-join]").forEach((button) => {
     button.addEventListener("click", () => {
-      const songId = Number(button.getAttribute("data-open-join"));
+      const songId = parseSongId(button.getAttribute("data-open-join"));
       openJoinModal(songId);
+    });
+  });
+
+  document.querySelectorAll("[data-leave-song]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const songId = parseSongId(button.getAttribute("data-leave-song"));
+      await leaveSong(songId);
     });
   });
 }
 
 function openJoinModal(songId) {
-  const musicianName = currentMusician();
-  if (!musicianName) {
-    setStatus("Inserisci il tuo nome prima di aggiungerti");
-    musicianNameInput.focus();
+  if (!Number.isFinite(songId)) {
+    setStatus("ID brano non valido");
+    return;
+  }
+  if (!requireMusicianName()) {
     return;
   }
 
-  const song = state.rankedSongs.find((item) => item.id === songId);
+  const song = findSongById(songId);
   if (!song) {
     setStatus("Brano non trovato");
     return;
@@ -264,12 +345,14 @@ function closeJoinModal() {
 }
 
 async function voteSong(songId) {
-  const musicianName = currentMusician();
-  if (!musicianName) {
-    setStatus("Inserisci il tuo nome prima di votare");
-    musicianNameInput.focus();
+  if (!Number.isFinite(songId)) {
+    setStatus("ID brano non valido");
     return;
   }
+  if (!requireMusicianName()) {
+    return;
+  }
+  const musicianName = currentMusician();
 
   setStatus("Invio voto...");
   try {
@@ -278,7 +361,7 @@ async function voteSong(songId) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ musicianName }),
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Errore nel voto");
     }
@@ -294,12 +377,14 @@ async function voteSong(songId) {
 }
 
 async function joinSong(songId, instrument) {
-  const musicianName = currentMusician();
-  if (!musicianName) {
-    setStatus("Inserisci il tuo nome prima di scegliere uno strumento");
-    musicianNameInput.focus();
+  if (!Number.isFinite(songId)) {
+    setStatus("ID brano non valido");
     return;
   }
+  if (!requireMusicianName()) {
+    return;
+  }
+  const musicianName = currentMusician();
 
   setStatus("Prenotazione strumento...");
   try {
@@ -308,7 +393,7 @@ async function joinSong(songId, instrument) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ musicianName, instrument }),
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Errore nella prenotazione dello strumento");
     }
@@ -323,18 +408,48 @@ async function joinSong(songId, instrument) {
   }
 }
 
-async function submitProposal() {
+async function leaveSong(songId) {
+  if (!Number.isFinite(songId)) {
+    setStatus("ID brano non valido");
+    return;
+  }
+  if (!requireMusicianName()) {
+    return;
+  }
   const musicianName = currentMusician();
+
+  setStatus("Uscita dal brano...");
+  try {
+    const response = await fetch(`/api/songs/${songId}/leave`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ musicianName }),
+    });
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || "Errore nell'uscita dal brano");
+    }
+    await loadSongs();
+    if (data.action === "noop") {
+      setStatus("Non risultavi su questo brano");
+    } else {
+      setStatus("Hai lasciato il brano");
+    }
+  } catch (error) {
+    setStatus(error.message);
+  }
+}
+
+async function submitProposal() {
   const songTitle = proposalSongTitle.value.trim();
   const author = proposalAuthor.value.trim();
   const tone = proposalTone.value.trim();
   const instrument = proposalInstrument.value;
 
-  if (!musicianName) {
-    setStatus("Inserisci il tuo nome prima di proporre un brano");
-    musicianNameInput.focus();
+  if (!requireMusicianName()) {
     return;
   }
+  const musicianName = currentMusician();
 
   setStatus("Aggiunta nuovo brano...");
   try {
@@ -349,7 +464,7 @@ async function submitProposal() {
         instrument,
       }),
     });
-    const data = await response.json();
+    const data = await readJsonResponse(response);
     if (!response.ok) {
       throw new Error(data.error || "Errore durante la proposta del brano");
     }

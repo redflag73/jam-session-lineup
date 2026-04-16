@@ -192,6 +192,13 @@ button.secondary:hover {
   gap: 6px;
 }
 
+.musicians-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .musicians-count {
   font-weight: 600;
 }
@@ -217,6 +224,16 @@ button.secondary:hover {
   background: #d1d5db;
   color: #4b5563;
   cursor: not-allowed;
+}
+
+.tiny-btn-leave {
+  background: #fff;
+  color: #92400e;
+  border: 1px solid #d97706;
+}
+
+.tiny-btn-leave:hover {
+  background: #fffbeb;
 }
 
 .love-cell {
@@ -258,6 +275,12 @@ button.secondary:hover {
 
 .heart-btn-active {
   background: #b91c1c;
+}
+
+.heart-btn:disabled,
+.heart-btn-disabled:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .modal {
