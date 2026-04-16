@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jam Session lineup</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Jam Session lineup</h1>
+        <p>Vota i brani, scegli il tuo strumento e costruisci la scaletta della serata.</p>
+      </header>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div class="identity">
+            <label for="musicianName">Il tuo nome</label>
+            <input id="musicianName" placeholder="Es. Giampaolo Pascali" />
+          </div>
+          <button id="refreshBtn">Aggiorna</button>
+          <span id="statusMsg">Loading...</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Proponi un nuovo brano</h2>
+        <form id="proposalForm" class="proposal-form">
+          <div class="field">
+            <label for="proposalSongTitle">Nome del brano</label>
+            <input id="proposalSongTitle" required />
+          </div>
+          <div class="field">
+            <label for="proposalAuthor">Autore</label>
+            <input id="proposalAuthor" required />
+          </div>
+          <div class="field">
+            <label for="proposalTone">Tonalità</label>
+            <input id="proposalTone" required />
+          </div>
+          <div class="field">
+            <label for="proposalInstrument">Strumento che suonerai</label>
+            <select id="proposalInstrument" required>
+              <option value="">Seleziona</option>
+              <option value="chitarra">Chitarra</option>
+              <option value="basso">Basso</option>
+              <option value="batteria">Batteria</option>
+              <option value="tastiere">Tastiere</option>
+              <option value="voce">Voce</option>
+              <option value="altro">Altro</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="submit">Proponi brano</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Brani proposti</h2>
+        <div id="songsList" class="songs-grid"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Scaletta per la serata</h2>
+        <p class="hint">
+          Include i brani con almeno 3 musicisti. Priorità ai brani con più musicisti e, a parità, più love.
+        </p>
+        <div class="table-wrap">
+          <table id="scalettaTable"></table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

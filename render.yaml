@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: jam-session-lineup
+    env: python
+    plan: starter
+    buildCommand: "python -m pip install --upgrade pip"
+    startCommand: "python app.py"
+    healthCheckPath: /health
+    envVars:
+      - key: LOCAL_DATA_FILE
+        value: /data/songs.json
+      - key: PYTHON_VERSION
+        value: 3.12.1
+    disk:
+      name: jam-session-data
+      mountPath: /data
+      sizeGB: 1

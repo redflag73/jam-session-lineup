@@ -1,0 +1,405 @@
+{
+  "nextId": 27,
+  "songs": [
+    {
+      "id": 1,
+      "songTitle": "Titanium (Acoustic Version)",
+      "author": "Sia",
+      "tone": "Stessa tonalità del video",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 2,
+      "songTitle": "Have You Ever Seen The Rain",
+      "author": "CCR",
+      "tone": "Fabrizio Ciampa",
+      "proposedBy": "Fabrizio Ciampa",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 3,
+      "songTitle": "Whiter Shade of Pale",
+      "author": "Procol Harum",
+      "tone": "Sol (G)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 4,
+      "songTitle": "Layla",
+      "author": "Eric Clapton",
+      "tone": "La minore (Am)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 5,
+      "songTitle": "La Flaca",
+      "author": "Jarabe de Palo",
+      "tone": "La minore (Am)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 6,
+      "songTitle": "Wake Me Up",
+      "author": "Avicii",
+      "tone": "La minore (Am)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 7,
+      "songTitle": "Locked Out Of Heaven",
+      "author": "Bruno Mars",
+      "tone": "La minore (Am)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 8,
+      "songTitle": "Message In A Bottle",
+      "author": "The Police",
+      "tone": "La minore (Am)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 9,
+      "songTitle": "The Logical Song",
+      "author": "Supertramp",
+      "tone": "Mi minore (Em)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 10,
+      "songTitle": "Sultan of Swing",
+      "author": "Dire Straits",
+      "tone": "Re Minore",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 11,
+      "songTitle": "Viva La Vida",
+      "author": "Coldplay",
+      "tone": "La (A)",
+      "proposedBy": "Giampaolo Pascali",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 12,
+      "songTitle": "L'amore si odia",
+      "author": "M. Mengoni Cover",
+      "tone": "Re minore (2 semitoni in meno dell'originale)",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 13,
+      "songTitle": "La ragazza del futuro",
+      "author": "Cremonini",
+      "tone": "Tonalità originale",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 15,
+      "songTitle": "Otherside",
+      "author": "Red Hot Chili Peppers",
+      "tone": "Tonalità originale",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 16,
+      "songTitle": "Everybody's Changing",
+      "author": "Keane",
+      "tone": "Tonalità originale",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 17,
+      "songTitle": "Somethin' Stupid",
+      "author": "Robbie Williams, Nicole Kidman",
+      "tone": "Tonalità originale (vedi video)",
+      "proposedBy": "Raffaele (Redways)",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "Giampaolo Pascali",
+        "voce": "Giampaolo Pascali",
+        "altro": ""
+      }
+    },
+    {
+      "id": 18,
+      "songTitle": "Birds of a Feather",
+      "author": "Unknown",
+      "tone": "Re Maggiore",
+      "proposedBy": "Valentina Moscatelli",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Valentina Moscatelli",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 19,
+      "songTitle": "Save Me From Myself",
+      "author": "Unknown",
+      "tone": "Fa Maggiore",
+      "proposedBy": "Valentina Moscatelli",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Valentina Moscatelli",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 20,
+      "songTitle": "Just Breathe",
+      "author": "Pearl Jam",
+      "tone": "Danny West",
+      "proposedBy": "Danny West",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 21,
+      "songTitle": "Dust in the Wind",
+      "author": "Kansas",
+      "tone": "Danny West",
+      "proposedBy": "Danny West",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 22,
+      "songTitle": "Zebra",
+      "author": "John Butler Trio",
+      "tone": "Danny West",
+      "proposedBy": "Danny West",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 23,
+      "songTitle": "In My Place",
+      "author": "Coldplay",
+      "tone": "Roberto Mariani",
+      "proposedBy": "Roberto Mariani",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 24,
+      "songTitle": "Fields of Gold",
+      "author": "Sting",
+      "tone": "Roberto Mariani",
+      "proposedBy": "Roberto Mariani",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 25,
+      "songTitle": "Rimmel",
+      "author": "Francesco De Gregori",
+      "tone": "Roberto Mariani",
+      "proposedBy": "Roberto Mariani",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 26,
+      "songTitle": "Money",
+      "author": "Pink Floyd",
+      "tone": "Francesco Vono",
+      "proposedBy": "Francesco Vono",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    }
+  ]
+}
