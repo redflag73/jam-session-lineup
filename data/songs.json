@@ -1,5 +1,5 @@
 {
-  "nextId": 28,
+  "nextId": 27,
   "songs": [
     {
       "id": 1,
@@ -395,22 +395,6 @@
       "instruments": {
         "chitarra": "",
         "basso": "Francesco Vono",
-        "batteria": "",
-        "tastiere": "",
-        "voce": "",
-        "altro": ""
-      }
-    },
-    {
-      "id": 27,
-      "songTitle": "Sapore di Mare",
-      "author": "Gino Paoli",
-      "tone": "Originale",
-      "proposedBy": "Gigi Vitiello",
-      "hearts": [],
-      "instruments": {
-        "chitarra": "",
-        "basso": "",
         "batteria": "",
         "tastiere": "",
         "voce": "",

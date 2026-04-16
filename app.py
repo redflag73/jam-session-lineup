@@ -18,7 +18,6 @@ INDEX_FILE = ROOT_DIR / "templates" / "index.html"
 STATIC_DIR = ROOT_DIR / "static"
 INSTRUMENT_KEYS = ["chitarra", "basso", "batteria", "tastiere", "voce", "altro"]
 LOCK = threading.Lock()
-_LAST_SEED_SIGNATURE: Tuple[float, int] | None = None
 
 
 def normalize_label(value: str) -> str:
@@ -37,13 +36,6 @@ def song_identity(song: Dict[str, object]) -> Tuple[str, str]:
     return title, author
 
 
-def seed_signature() -> Tuple[float, int] | None:
-    if not SEED_DATA_FILE.exists():
-        return None
-    stat = SEED_DATA_FILE.stat()
-    return stat.st_mtime, stat.st_size
-
-
 def merge_seed_instruments(target: Dict[str, str], seed: Dict[str, str]) -> bool:
     changed = False
     for key in INSTRUMENT_KEYS:
@@ -51,6 +43,23 @@ def merge_seed_instruments(target: Dict[str, str], seed: Dict[str, str]) -> bool
         incoming = str(seed.get(key, "")).strip()
         if not current and incoming:
             target[key] = incoming
+            changed = True
+    return changed
+
+
+def merge_seed_meta(song: Dict[str, object], seed_song: Dict[str, object]) -> bool:
+    """Align canonical title / author / tone from bundled seed (fixes stale cloud DB)."""
+    changed = False
+    for key in ("songTitle", "author", "tone"):
+        seed_raw = seed_song.get(key)
+        if seed_raw is None:
+            continue
+        seed_str = str(seed_raw).strip()
+        if not seed_str:
+            continue
+        cur_str = str(song.get(key, "")).strip()
+        if seed_str != cur_str:
+            song[key] = seed_str
             changed = True
     return changed
 
@@ -63,22 +72,40 @@ def merge_seed_into_data(data: Dict[str, object]) -> bool:
         seed_payload = json.load(handle)
 
     seed_songs = seed_payload.get("songs", [])
-    seed_by_id = {song.get("id"): song for song in seed_songs if song.get("id") is not None}
+    seed_by_id: Dict[int, Dict[str, object]] = {}
+    for seed_row in seed_songs:
+        if not isinstance(seed_row, dict):
+            continue
+        raw_id = seed_row.get("id")
+        try:
+            seed_by_id[int(raw_id)] = seed_row
+        except (TypeError, ValueError):
+            continue
     seed_by_identity = {}
     for song in seed_songs:
-        seed_by_identity[song_identity(song)] = song
+        if isinstance(song, dict):
+            seed_by_identity[song_identity(song)] = song
 
     changed = False
     for song in data.get("songs", []):
+        if not isinstance(song, dict):
+            continue
         seed_song = None
         song_id = song.get("id")
-        if song_id in seed_by_id:
-            seed_song = seed_by_id[song_id]
+        try:
+            sid = int(song_id) if song_id is not None else None
+        except (TypeError, ValueError):
+            sid = None
+        if sid is not None and sid in seed_by_id:
+            seed_song = seed_by_id[sid]
         else:
             seed_song = seed_by_identity.get(song_identity(song))
 
         if not seed_song:
             continue
+
+        if merge_seed_meta(song, seed_song):
+            changed = True
 
         instruments = song.get("instruments", blank_instruments())
         seed_instruments = seed_song.get("instruments", blank_instruments())
@@ -87,6 +114,39 @@ def merge_seed_into_data(data: Dict[str, object]) -> bool:
             changed = True
 
     return changed
+
+
+def count_musicians_raw(song: Dict[str, object]) -> int:
+    instruments = song.get("instruments", {})
+    if not isinstance(instruments, dict):
+        return 0
+    return sum(1 for key in INSTRUMENT_KEYS if str(instruments.get(key, "")).strip())
+
+
+def prune_songs_with_no_musicians(data: Dict[str, object]) -> bool:
+    """Remove songs with zero musicians (empty instrument slots)."""
+    songs = data.get("songs", [])
+    if not isinstance(songs, list):
+        return False
+    kept: List[Dict[str, object]] = []
+    for song in songs:
+        if isinstance(song, dict) and count_musicians_raw(song) > 0:
+            kept.append(song)
+    if len(kept) == len(songs):
+        return False
+    data["songs"] = kept
+    max_id = 0
+    for song in kept:
+        try:
+            max_id = max(max_id, int(song.get("id", 0)))
+        except (TypeError, ValueError):
+            continue
+    try:
+        next_id = int(data.get("nextId", max_id + 1))
+    except (TypeError, ValueError):
+        next_id = max_id + 1
+    data["nextId"] = max(next_id, max_id + 1)
+    return True
 
 
 def coerce_instruments_field(instruments: object) -> Tuple[Dict[str, str], bool]:
@@ -132,8 +192,6 @@ def normalize_song_record(song: Dict[str, object]) -> bool:
 
 
 def load_db() -> Dict[str, object]:
-    global _LAST_SEED_SIGNATURE
-
     if not DATA_FILE.exists():
         # First boot on cloud: initialize persistent data from bundled seed file.
         if SEED_DATA_FILE.exists():
@@ -160,11 +218,12 @@ def load_db() -> Dict[str, object]:
         if normalized_any:
             save_db(data)
 
-    signature = seed_signature()
-    if signature and signature != _LAST_SEED_SIGNATURE:
+    if SEED_DATA_FILE.exists():
         if merge_seed_into_data(data):
             save_db(data)
-        _LAST_SEED_SIGNATURE = signature
+
+    if prune_songs_with_no_musicians(data):
+        save_db(data)
 
     return data
 
@@ -495,5 +554,5 @@ class AppHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
     server = ThreadingHTTPServer(("0.0.0.0", port), AppHandler)
-    print(f"Jam Session lineup running on http://0.0.0.0:{port}")
+    print(f"Lab & Roll Unplugged running on http://0.0.0.0:{port}")
     server.serve_forever()

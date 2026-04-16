@@ -20,9 +20,45 @@ h2 {
   margin: 0 0 8px;
 }
 
-header p {
-  margin: 0 0 20px;
+.app-header {
+  margin-bottom: 4px;
+}
+
+.brand-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  font-size: clamp(1.35rem, 3.4vw, 2rem);
+  line-height: 1.15;
+}
+
+.brand-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 1em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-logo {
+  height: 2.5em;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.app-tagline {
+  margin: 6px 0 0;
   color: #4b5563;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .panel {

@@ -1,0 +1,37 @@
+{
+  "nextId": 10,
+  "songs": [
+    {
+      "id": 1,
+      "songTitle": "Titanium (Acoustic Version)",
+      "author": "Sia",
+      "tone": "Stessa tonalità del video",
+      "proposedBy": "x",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "Raffaele (Redways)",
+        "basso": "",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "",
+        "altro": ""
+      }
+    },
+    {
+      "id": 2,
+      "songTitle": "Have You Ever Seen The Rain",
+      "author": "CCR",
+      "tone": "Qualsiasi",
+      "proposedBy": "y",
+      "hearts": [],
+      "instruments": {
+        "chitarra": "",
+        "basso": "Fabrizio Ciampa",
+        "batteria": "",
+        "tastiere": "",
+        "voce": "Me",
+        "altro": ""
+      }
+    }
+  ]
+}
